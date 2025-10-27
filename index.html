@@ -184,26 +184,57 @@
         }
       };
 
-      const downloadResults = () => {
-        const results = {
-          tasks: tasks.map(task => ({
-            과제: task.text,
-            인정받음: task.recognized ? 'O' : 'X',
-            선호도점수: task.preferenceScore,
-            선호도순위: task.preferenceRank,
-            시장점수: task.marketScore,
-            시장순위: task.marketRank,
-            분면: getQuadrant(task)
-          })),
-          portfolio: tasks.filter(t => selectedPortfolio.includes(t.id)).map(t => t.text)
-        };
+      const downloadResults = async () => {
+        // 포트폴리오 섹션 캡처
+        const element = document.getElementById('portfolio-section');
+        if (!element) return;
         
-        const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = '강점분석결과.json';
-        a.click();
+        try {
+          // html2canvas 라이브러리 동적 로드
+          if (!window.html2canvas) {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            document.head.appendChild(script);
+            await new Promise(resolve => script.onload = resolve);
+          }
+          
+          const canvas = await window.html2canvas(element, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            logging: false
+          });
+          
+          // 이미지로 다운로드
+          canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '나의_강점_포트폴리오.png';
+            a.click();
+            URL.revokeObjectURL(url);
+          });
+          
+        } catch (error) {
+          // 폴백: JSON 다운로드
+          console.error('이미지 저장 실패:', error);
+          const results = {
+            tasks: tasks.map(task => ({
+              과제: task.text,
+              인정받음: task.recognized ? 'O' : 'X',
+              선호도순위: task.preferenceRank,
+              시장순위: task.marketRank,
+              분면: getQuadrant(task)
+            })),
+            portfolio: tasks.filter(t => selectedPortfolio.includes(t.id)).map(t => t.text)
+          };
+          
+          const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = '강점분석결과.json';
+          a.click();
+        }
       };
 
       const getTableData = () => {
@@ -539,10 +570,10 @@
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                  <h2 className="text-2xl font-bold mb-2">4분면 분석 및 포트폴리오 구성</h2>
+                <div className="bg-white rounded-lg shadow-lg p-6" id="portfolio-section">
+                  <h2 className="text-2xl font-bold mb-2">강점 포트폴리오 구성</h2>
                   <p className="text-sm text-gray-600 mb-4">
-                    1, 2, 4분면에서 최대 4개를 선택하여 강점 포트폴리오를 구성하세요.
+                    ⭐전략적 투자, 🤔다크호스, 🆘스트레스 영역에서 최대 4개를 선택하세요.
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -616,7 +647,7 @@
                       className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2"
                     >
                       <Download className="w-4 h-4" />
-                      결과 다운로드
+                      포트폴리오 이미지로 저장
                     </button>
                   </div>
                 </div>
